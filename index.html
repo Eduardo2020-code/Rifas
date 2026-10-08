@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rifa Solidaria - Un TV para los Niños</title>
+  <!-- Versión conectada a BINGO_LUISCA mediante Google Apps Script -->
 
   <style>
     :root {
@@ -220,6 +221,7 @@
     .dot.free { background: white; }
     .dot.selected { background: var(--primary); }
     .dot.reserved { background: #d1d5db; }
+    .dot.paid { background: #10b981; }
 
     .grid-container {
       display: grid;
@@ -271,6 +273,17 @@
       background: #cbd5e1;
       transform: rotate(-35deg);
       border-radius: 999px;
+    }
+
+    .num-btn.ocupado.pagado {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+      text-decoration: none;
+    }
+
+    .num-btn.ocupado.pagado::after {
+      display: none;
     }
 
     .side {
@@ -845,6 +858,7 @@
         <span class="legend-item"><span class="dot free"></span> Disponible</span>
         <span class="legend-item"><span class="dot selected"></span> Seleccionado</span>
         <span class="legend-item"><span class="dot reserved"></span> Reservado</span>
+        <span class="legend-item"><span class="dot paid"></span> Pagado</span>
       </div>
 
       <div class="grid-container" id="tablero"></div>
@@ -916,8 +930,8 @@
           </div>
         </div>
 
-        <p class="status">
-          Los números en gris ya están reservados y no pueden ser seleccionados.
+        <p class="status" id="syncStatus">
+          Conectando con la lista de reservas...
         </p>
       </section>
 
@@ -943,16 +957,14 @@
           </div>
 
           <p>
-            Desde aquí puedes exportar la información de las reservas
-            o limpiar los datos guardados en esta versión local.
+            Las reservas se guardan en Google Sheets. Desde aquí puedes
+            forzar una actualización del tablero. Para cambiar estados, liberar
+            números o revisar nombres y teléfonos, hazlo directamente en
+            <strong>BINGO_LUISCA</strong>.
           </p>
 
-          <button class="btn btn-secondary" id="btnExportar">
-            Exportar reservas a Excel/CSV
-          </button>
-
-          <button class="btn btn-danger" id="btnBorrar">
-            Borrar todas las reservas locales
+          <button class="btn btn-secondary" id="btnActualizarAdmin">
+            🔄 Actualizar tablero ahora
           </button>
         </div>
       </section>
@@ -1102,19 +1114,14 @@
 <script>
   const MI_WHATSAPP = "573206942593";
 
-  /*
-    IMPORTANTE:
-    Esta versión funciona completamente en HTML y guarda las reservas
-    en localStorage del navegador.
-
-    Cuando se despliegue para múltiples clientes, sustituiremos
-    guardarReservas() / cargarReservas() por llamadas a una API o Google Sheets,
-    para que todos los usuarios compartan el mismo estado en tiempo real.
-  */
+  // API pública de Google Apps Script conectada con BINGO_LUISCA.
+  const API_URL = "https://script.google.com/macros/s/AKfycbxAMYG4ksCoZ2UhVThuy9mVlBmoVIcF5h-zG-68olXfQPqiNLgvK7CG1zP9q64JYtO2mw/exec";
 
   let seleccionados = [];
-  let reservas = cargarReservas();
+  let reservas = [];
   let ultimaReserva = null;
+  let apiLista = false;
+  let sincronizando = false;
 
   const tablero = document.getElementById("tablero");
   const btnReservar = document.getElementById("btnReservar");
@@ -1155,8 +1162,8 @@
   const btnIngresarAdmin = document.getElementById("btnIngresarAdmin");
   const btnTogglePassword = document.getElementById("btnTogglePassword");
 
-  const btnExportar = document.getElementById("btnExportar");
-  const btnBorrar = document.getElementById("btnBorrar");
+  const btnActualizarAdmin = document.getElementById("btnActualizarAdmin");
+  const syncStatus = document.getElementById("syncStatus");
   const toast = document.getElementById("toast");
 
   // SHA-256 de la contraseña del administrador.
@@ -1260,23 +1267,90 @@
   }
 
 
-  function cargarReservas() {
-    try {
-      const data = JSON.parse(localStorage.getItem("rifa_reservas_v2"));
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      return [];
-    }
-  }
+  function numeroEstado(numero) {
+    const reserva = reservas.find(
+      r => Array.isArray(r.numeros) && r.numeros.includes(numero)
+    );
 
-
-  function guardarReservas() {
-    localStorage.setItem("rifa_reservas_v2", JSON.stringify(reservas));
+    return reserva ? String(reserva.estado || "RESERVADO").toUpperCase() : null;
   }
 
 
   function numeroReservado(numero) {
-    return reservas.some(r => Array.isArray(r.numeros) && r.numeros.includes(numero));
+    return Boolean(numeroEstado(numero));
+  }
+
+
+  async function sincronizarReservas(silencioso = false) {
+    if (sincronizando) return;
+
+    sincronizando = true;
+
+    if (!silencioso) {
+      syncStatus.textContent = "🔄 Sincronizando números con Google Sheets...";
+    }
+
+    try {
+      const respuesta = await fetch(
+        `${API_URL}?accion=estado&_=${Date.now()}`,
+        {
+          method: "GET",
+          cache: "no-store",
+          redirect: "follow"
+        }
+      );
+
+      if (!respuesta.ok) {
+        throw new Error(`HTTP ${respuesta.status}`);
+      }
+
+      const data = await respuesta.json();
+
+      if (!data.ok) {
+        throw new Error(data.mensaje || "No fue posible consultar las reservas.");
+      }
+
+      const mapa = new Map();
+
+      (data.reservados || []).forEach(numero => {
+        mapa.set(String(numero).padStart(2, "0"), "RESERVADO");
+      });
+
+      (data.pagados || []).forEach(numero => {
+        mapa.set(String(numero).padStart(2, "0"), "PAGADO");
+      });
+
+      reservas = Array.from(mapa.entries()).map(([numero, estado]) => ({
+        numeros: [numero],
+        estado
+      }));
+
+      apiLista = true;
+
+      // Si mientras el usuario estaba mirando alguien reservó uno de sus
+      // números seleccionados, lo quitamos inmediatamente.
+      seleccionados = seleccionados.filter(numero => !numeroReservado(numero));
+
+      renderTablero();
+
+      syncStatus.textContent =
+        `✅ Sincronizado con BINGO_LUISCA · ${reservas.length} de 100 números bloqueados`;
+
+    } catch (error) {
+      apiLista = false;
+
+      syncStatus.textContent =
+        "⚠️ No se pudo conectar con las reservas. Revisa la conexión e inténtalo nuevamente.";
+
+      if (!silencioso) {
+        mostrarToast("No fue posible sincronizar con Google Sheets.");
+      }
+
+      console.error("Error de sincronización:", error);
+
+    } finally {
+      sincronizando = false;
+    }
   }
 
 
@@ -1292,10 +1366,18 @@
       btn.textContent = numero;
       btn.setAttribute("aria-label", "Número " + numero);
 
-      if (numeroReservado(numero)) {
+      const estadoNumero = numeroEstado(numero);
+
+      if (estadoNumero) {
         btn.classList.add("ocupado");
         btn.disabled = true;
-        btn.title = "Número reservado";
+
+        if (estadoNumero === "PAGADO") {
+          btn.classList.add("pagado");
+          btn.title = "Número pagado";
+        } else {
+          btn.title = "Número reservado";
+        }
       }
 
       if (seleccionados.includes(numero)) {
@@ -1313,6 +1395,12 @@
 
 
   function tocarNumero(numero) {
+    if (!apiLista) {
+      mostrarToast("Espera un momento: estamos sincronizando los números.");
+      sincronizarReservas();
+      return;
+    }
+
     if (numeroReservado(numero)) {
       mostrarToast("Este número ya está reservado.");
       return;
@@ -1377,18 +1465,23 @@
   }
 
 
-  function abrirModalReserva() {
+  async function abrirModalReserva() {
     if (seleccionados.length !== 2) return;
 
-    // Verificación final por si otro proceso local cambió los datos.
-    reservas = cargarReservas();
+    // Antes de mostrar el formulario, volvemos a consultar Google Sheets.
+    await sincronizarReservas(true);
+
+    if (!apiLista) {
+      mostrarToast("No hay conexión con la lista de reservas. Inténtalo nuevamente.");
+      return;
+    }
 
     const yaOcupados = seleccionados.filter(numeroReservado);
 
     if (yaOcupados.length) {
       seleccionados = seleccionados.filter(n => !yaOcupados.includes(n));
       renderTablero();
-      mostrarToast("Uno de los números ya fue reservado. Elige otro.");
+      mostrarToast("Uno de los números acaba de ser reservado. Elige otro.");
       return;
     }
 
@@ -1414,7 +1507,7 @@
   }
 
 
-  function confirmarReserva() {
+  async function confirmarReserva() {
     const nombre = nombreCliente.value.trim();
     const telefono = telefonoCliente.value.trim();
 
@@ -1430,44 +1523,87 @@
       return;
     }
 
-    // Recarga antes de guardar para evitar duplicados dentro de la misma máquina.
-    reservas = cargarReservas();
-
-    const ocupadosAhora = seleccionados.filter(numeroReservado);
-
-    if (ocupadosAhora.length) {
-      mostrarToast(
-        `El número ${ocupadosAhora.join(", ")} acaba de quedar reservado.`
-      );
-
-      cerrarModal();
-      seleccionados = [];
-      renderTablero();
+    if (!apiLista) {
+      mostrarToast("No hay conexión con Google Sheets. Inténtalo nuevamente.");
+      await sincronizarReservas();
       return;
     }
 
-    const reserva = {
-      id: "R-" + Date.now(),
-      nombre,
-      telefono,
-      numeros: [...seleccionados],
-      estado: "reservado",
-      fecha: new Date().toISOString()
-    };
+    const numerosAReservar = [...seleccionados];
 
-    reservas.push(reserva);
-    guardarReservas();
+    btnConfirmarReserva.disabled = true;
+    btnConfirmarReserva.textContent = "Guardando reserva...";
 
-    ultimaReserva = reserva;
-    seleccionados = [];
+    try {
+      const formData = new URLSearchParams();
+      formData.append("accion", "reservar");
+      formData.append("nombre", nombre);
+      formData.append("telefono", telefono);
+      formData.append("numero1", numerosAReservar[0]);
+      formData.append("numero2", numerosAReservar[1]);
 
-    renderTablero();
+      const respuesta = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: formData.toString(),
+        redirect: "follow"
+      });
 
-    reservationForm.style.display = "none";
-    successScreen.style.display = "block";
+      if (!respuesta.ok) {
+        throw new Error(`HTTP ${respuesta.status}`);
+      }
 
-    document.getElementById("successText").textContent =
-      `${reserva.nombre}, tus números ${reserva.numeros[0]} y ${reserva.numeros[1]} quedaron reservados correctamente.`;
+      const data = await respuesta.json();
+
+      if (!data.ok) {
+        // El servidor realiza una segunda validación protegida por LockService.
+        // Si otra persona tomó el número primero, mostramos el mensaje real.
+        if (data.codigo === "NUMERO_OCUPADO") {
+          cerrarModal();
+          seleccionados = [];
+          await sincronizarReservas(true);
+          mostrarToast(data.mensaje || "Uno de los números ya fue reservado.");
+          return;
+        }
+
+        throw new Error(data.mensaje || "No se pudo guardar la reserva.");
+      }
+
+      ultimaReserva = {
+        id: data.reserva?.id || "",
+        nombre,
+        telefono,
+        numeros: numerosAReservar,
+        estado: "RESERVADO",
+        fecha: data.reserva?.fecha || new Date().toISOString()
+      };
+
+      seleccionados = [];
+
+      // Actualizamos inmediatamente el tablero desde Google Sheets.
+      await sincronizarReservas(true);
+
+      reservationForm.style.display = "none";
+      successScreen.style.display = "block";
+
+      document.getElementById("successText").textContent =
+        `${nombre}, tus números ${numerosAReservar[0]} y ${numerosAReservar[1]} quedaron reservados correctamente.`;
+
+    } catch (error) {
+      console.error("Error al guardar reserva:", error);
+      mostrarToast(
+        "No pudimos guardar la reserva. No cierres la página e inténtalo nuevamente."
+      );
+
+      // Vuelve a consultar el estado por seguridad.
+      await sincronizarReservas(true);
+
+    } finally {
+      btnConfirmarReserva.disabled = false;
+      btnConfirmarReserva.textContent = "Confirmar reserva";
+    }
   }
 
 
@@ -1505,79 +1641,6 @@ Quedo atento(a) para confirmar el pago de $10.000.`;
     window.__toastTimer = setTimeout(() => {
       toast.classList.remove("show");
     }, 2600);
-  }
-
-
-  function exportarCSV() {
-    if (!reservas.length) {
-      mostrarToast("Todavía no hay reservas para exportar.");
-      return;
-    }
-
-    const encabezado = [
-      "ID",
-      "Nombre",
-      "Telefono",
-      "Numero 1",
-      "Numero 2",
-      "Estado",
-      "Fecha"
-    ];
-
-    const filas = reservas.map(r => [
-      r.id,
-      r.nombre,
-      r.telefono || "",
-      r.numeros?.[0] || "",
-      r.numeros?.[1] || "",
-      r.estado || "reservado",
-      r.fecha || ""
-    ]);
-
-    const escapar = valor =>
-      `"${String(valor ?? "").replace(/"/g, '""')}"`;
-
-    const csv =
-      "\uFEFF" +
-      [encabezado, ...filas]
-        .map(fila => fila.map(escapar).join(";"))
-        .join("\n");
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;"
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = "reservas_rifa.csv";
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
-
-    mostrarToast("Reservas exportadas correctamente.");
-  }
-
-
-  function borrarReservas() {
-    const confirmar = confirm(
-      "¿Seguro que deseas borrar TODAS las reservas guardadas en este navegador?"
-    );
-
-    if (!confirmar) return;
-
-    reservas = [];
-    seleccionados = [];
-    ultimaReserva = null;
-
-    guardarReservas();
-    renderTablero();
-
-    mostrarToast("Reservas locales eliminadas.");
   }
 
 
@@ -1631,21 +1694,25 @@ Quedo atento(a) para confirmar el pago de $10.000.`;
     if (e.target === modalAdmin) cerrarAdminLogin();
   });
 
-  btnExportar.addEventListener("click", exportarCSV);
-  btnBorrar.addEventListener("click", borrarReservas);
+  btnActualizarAdmin.addEventListener("click", () => {
+    sincronizarReservas();
+  });
 
-  // Sincroniza cambios entre pestañas del mismo navegador.
-  window.addEventListener("storage", e => {
-    if (e.key === "rifa_reservas_v2") {
-      reservas = cargarReservas();
-      seleccionados = seleccionados.filter(n => !numeroReservado(n));
-      renderTablero();
+  // Mantiene el tablero actualizado aunque otra persona reserve desde otro celular.
+  setInterval(() => {
+    sincronizarReservas(true);
+  }, 10000);
+
+  // También actualizamos cuando el usuario vuelve a esta pestaña.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      sincronizarReservas(true);
     }
   });
 
-
   restaurarSesionAdmin();
   renderTablero();
+  sincronizarReservas();
 </script>
 
 </body>
