@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rifa Solidaria - Un TV para los Niños</title>
+
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-2: #7c3aed;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --dark: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --surface: rgba(255,255,255,.92);
+      --bg1: #eef2ff;
+      --bg2: #f8fafc;
+      --shadow: 0 18px 50px rgba(15, 23, 42, .12);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--dark);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(79,70,229,.15), transparent 30%),
+        radial-gradient(circle at 90% 15%, rgba(16,185,129,.12), transparent 26%),
+        linear-gradient(160deg, var(--bg1), var(--bg2) 60%);
+      padding: 30px 14px 60px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      padding: 38px;
+      color: white;
+      background:
+        linear-gradient(120deg, rgba(79,70,229,.96), rgba(124,58,237,.94));
+      box-shadow: 0 22px 55px rgba(79, 70, 229, .24);
+      margin-bottom: 24px;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+    }
+
+    .hero::before {
+      width: 280px;
+      height: 280px;
+      right: -80px;
+      top: -120px;
+    }
+
+    .hero::after {
+      width: 180px;
+      height: 180px;
+      right: 140px;
+      bottom: -120px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.35fr .65fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 13px;
+      border: 1px solid rgba(255,255,255,.3);
+      background: rgba(255,255,255,.12);
+      border-radius: 999px;
+      font-size: .84rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: rgba(255,255,255,.9);
+      line-height: 1.6;
+      font-size: 1rem;
+      max-width: 680px;
+    }
+
+    .hero-stat {
+      border: 1px solid rgba(255,255,255,.22);
+      background: rgba(255,255,255,.12);
+      border-radius: 22px;
+      padding: 23px;
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-stat strong {
+      display: block;
+      font-size: 2.1rem;
+      margin-bottom: 5px;
+    }
+
+    .hero-stat span {
+      color: rgba(255,255,255,.88);
+      font-size: .9rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.65);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(15px);
+    }
+
+    .board-panel {
+      padding: 26px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .section-head h2 {
+      font-size: 1.35rem;
+      margin-bottom: 5px;
+    }
+
+    .section-head p {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .selection-pill {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      background: #eef2ff;
+      color: var(--primary);
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-weight: 800;
+      font-size: .84rem;
+      white-space: nowrap;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: .83rem;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+
+    .dot.free { background: white; }
+    .dot.selected { background: var(--primary); }
+    .dot.reserved { background: #d1d5db; }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .num-btn {
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+      color: #334155;
+      font-weight: 900;
+      font-size: .88rem;
+      cursor: pointer;
+      transition: .18s ease;
+      box-shadow: 0 3px 9px rgba(15, 23, 42, .04);
+    }
+
+    .num-btn:hover:not(.ocupado) {
+      transform: translateY(-2px);
+      border-color: #a5b4fc;
+      color: var(--primary);
+      box-shadow: 0 8px 18px rgba(79,70,229,.13);
+    }
+
+    .num-btn.seleccionado {
+      border-color: var(--primary);
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 18px rgba(79,70,229,.26);
+      transform: translateY(-1px);
+    }
+
+    .num-btn.ocupado {
+      position: relative;
+      cursor: not-allowed;
+      color: #9ca3af;
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+    }
+
+    .num-btn.ocupado::after {
+      content: "";
+      position: absolute;
+      width: 70%;
+      height: 2px;
+      background: #cbd5e1;
+      transform: rotate(-35deg);
+      border-radius: 999px;
+    }
+
+    .side {
+      display: grid;
+      gap: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .info-card,
+    .summary-card,
+    .admin-card {
+      padding: 22px;
+    }
+
+    .info-card h3,
+    .summary-card h3,
+    .admin-card h3 {
+      font-size: 1rem;
+      margin-bottom: 15px;
+    }
+
+    .info-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      gap: 11px;
+      align-items: flex-start;
+      padding-bottom: 11px;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .info-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .icon-box {
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: #eef2ff;
+      font-size: 1.05rem;
+    }
+
+    .info-row small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .info-row strong {
+      font-size: .92rem;
+      line-height: 1.35;
+    }
+
+    .selected-preview {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0 10px;
+    }
+
+    .selected-box {
+      flex: 1;
+      min-height: 68px;
+      border: 1px dashed #c7d2fe;
+      background: #f8faff;
+      color: var(--primary);
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      font-size: 1.45rem;
+      font-weight: 900;
+    }
+
+    .selected-box.empty {
+      color: #cbd5e1;
+      background: #fafafa;
+      border-color: #e5e7eb;
+    }
+
+    .btn {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-size: .92rem;
+      font-weight: 850;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .btn:active {
+      transform: scale(.99);
+    }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      box-shadow: 0 8px 20px rgba(79,70,229,.23);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      background: #d1d5db;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      margin-top: 9px;
+    }
+
+    .btn-danger {
+      background: #fff1f2;
+      color: #be123c;
+      margin-top: 9px;
+    }
+
+    .status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .8rem;
+      line-height: 1.45;
+    }
+
+    .progress-wrap {
+      margin-top: 15px;
+    }
+
+    .progress-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: .8rem;
+      margin-bottom: 8px;
+    }
+
+    .progress {
+      height: 9px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #edf0f4;
+    }
+
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), #34d399);
+      transition: width .3s ease;
+    }
+
+    .admin-lock-box {
+      display: grid;
+      gap: 12px;
+    }
+
+    .admin-lock-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .admin-lock-icon {
+      width: 42px;
+      height: 42px;
+      min-width: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      background: #eef2ff;
+      color: var(--primary);
+      font-size: 1.12rem;
+    }
+
+    .admin-lock-title strong {
+      display: block;
+      font-size: .94rem;
+      margin-bottom: 2px;
+    }
+
+    .admin-lock-title span {
+      color: var(--muted);
+      font-size: .76rem;
+      line-height: 1.35;
+    }
+
+    .admin-tools {
+      display: none;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #eef2f7;
+    }
+
+    .admin-tools.show {
+      display: block;
+    }
+
+    .admin-tools p {
+      color: var(--muted);
+      font-size: .8rem;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .admin-session {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #047857;
+      font-size: .78rem;
+      font-weight: 800;
+    }
+
+    .btn-lock-admin {
+      width: auto;
+      padding: 8px 11px;
+      border: 0;
+      border-radius: 9px;
+      background: white;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap .form-control {
+      padding-right: 48px;
+    }
+
+    .password-eye {
+      position: absolute;
+      right: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 9px;
+      background: #f3f4f6;
+      cursor: pointer;
+      color: #64748b;
+      font-size: .95rem;
+    }
+
+    .admin-error {
+      display: none;
+      margin-top: 9px;
+      padding: 9px 11px;
+      border-radius: 10px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #be123c;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .admin-error.show {
+      display: block;
+    }
+
+    .footer-note {
+      text-align: center;
+      color: #94a3b8;
+      font-size: .78rem;
+      margin-top: 26px;
+    }
+
+    /* MODAL */
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, .62);
+      backdrop-filter: blur(8px);
+      animation: fadeIn .16s ease;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(100%, 470px);
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 30px 80px rgba(0,0,0,.24);
+      overflow: hidden;
+      animation: popIn .22s ease;
+    }
+
+    .modal-head {
+      padding: 24px 24px 18px;
+      background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+      border-bottom: 1px solid #e5e7eb;
+      position: relative;
+    }
+
+    .modal-head h2 {
+      font-size: 1.3rem;
+      margin-bottom: 5px;
+    }
+
+    .modal-head p {
+      color: var(--muted);
+      font-size: .87rem;
+      line-height: 1.45;
+    }
+
+    .close-btn {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 0;
+      background: rgba(255,255,255,.9);
+      color: #64748b;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    .modal-body {
+      padding: 22px 24px 24px;
+    }
+
+    .numbers-modal {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .number-chip {
+      flex: 1;
+      min-height: 70px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: white;
+      background: linear-gradient(135deg, var(--primary), var(--primary-2));
+      font-size: 1.55rem;
+      font-weight: 950;
+      box-shadow: 0 9px 22px rgba(79,70,229,.18);
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 800;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      border: 1px solid #dbe1e8;
+      border-radius: 13px;
+      padding: 12px 13px;
+      font: inherit;
+      outline: none;
+      transition: .17s ease;
+      background: white;
+    }
+
+    .form-control:focus {
+      border-color: #818cf8;
+      box-shadow: 0 0 0 4px rgba(99,102,241,.1);
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 10px;
+      margin-top: 17px;
+    }
+
+    .modal-actions .btn-secondary {
+      margin: 0;
+    }
+
+    .success-screen {
+      display: none;
+      text-align: center;
+      padding: 10px 0 3px;
+    }
+
+    .success-icon {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 14px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      font-size: 1.8rem;
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .success-screen h3 {
+      font-size: 1.25rem;
+      margin-bottom: 7px;
+    }
+
+    .success-screen p {
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 1200;
+      max-width: 360px;
+      background: #111827;
+      color: white;
+      padding: 13px 16px;
+      border-radius: 14px;
+      box-shadow: 0 14px 36px rgba(15,23,42,.25);
+      font-size: .86rem;
+      transform: translateY(25px);
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(10px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (max-width: 900px) {
+      .hero-content,
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+    }
+
+    @media (max-width: 650px) {
+      body {
+        padding: 14px 9px 38px;
+      }
+
+      .hero {
+        padding: 25px 20px;
+        border-radius: 22px;
+      }
+
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .hero-stat {
+        padding: 17px;
+      }
+
+      .board-panel {
+        padding: 17px 12px;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .grid-container {
+        gap: 5px;
+      }
+
+      .num-btn {
+        border-radius: 8px;
+        font-size: .72rem;
+      }
+
+      .modal-card {
+        border-radius: 20px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .num-btn {
+        font-size: .66rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <section class="hero">
+    <div class="hero-content">
+      <div>
+        <div class="eyebrow">❤️ RIFA SOLIDARIA</div>
+        <h1>Un TV para 24 niños</h1>
+        <p>
+          Tu aporte ayuda a la Sede Santa Cecilia de la I.E. Efraín Varela Vaca, Zarzal.
+          Escoge dos números disponibles y realiza tu reserva.
+        </p>
+      </div>
+
+      <div class="hero-stat">
+        <strong>$10.000</strong>
+        <span>Incluye 2 oportunidades para participar</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="main-grid">
+
+    <section class="panel board-panel">
+      <div class="section-head">
+        <div>
+          <h2>Elige tus números</h2>
+          <p>Puedes seleccionar exactamente 2 números entre 00 y 99.</p>
+        </div>
+        <div class="selection-pill" id="selectionPill">0 de 2 seleccionados</div>
+      </div>
+
+      <div class="legend">
+        <span class="legend-item"><span class="dot free"></span> Disponible</span>
+        <span class="legend-item"><span class="dot selected"></span> Seleccionado</span>
+        <span class="legend-item"><span class="dot reserved"></span> Reservado</span>
+      </div>
+
+      <div class="grid-container" id="tablero"></div>
+    </section>
+
+    <aside class="side">
+
+      <section class="panel info-card">
+        <h3>Información de la rifa</h3>
+
+        <div class="info-list">
+          <div class="info-row">
+            <div class="icon-box">🎁</div>
+            <div>
+              <small>Premio</small>
+              <strong>Hermosa Lámpara Artesanal de Ciclismo</strong>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="icon-box">📅</div>
+            <div>
+              <small>Sorteo</small>
+              <strong>15 de Octubre - Chontico Noche</strong>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="icon-box">💳</div>
+            <div>
+              <small>Mi Llave / Nequi</small>
+              <strong>6479495 - Luis Castañeda</strong>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <div class="icon-box">📱</div>
+            <div>
+              <small>Contacto</small>
+              <strong>320 694 2593</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel summary-card">
+        <h3>Tu selección</h3>
+
+        <div class="selected-preview">
+          <div class="selected-box empty" id="sel1">--</div>
+          <div class="selected-box empty" id="sel2">--</div>
+        </div>
+
+        <button class="btn btn-primary" id="btnReservar" disabled>
+          Selecciona 2 números
+        </button>
+
+        <button class="btn btn-secondary" id="btnLimpiar">
+          Limpiar selección
+        </button>
+
+        <div class="progress-wrap">
+          <div class="progress-title">
+            <span>Números reservados</span>
+            <strong id="reservedCounter">0 / 100</strong>
+          </div>
+          <div class="progress">
+            <div id="progressBar"></div>
+          </div>
+        </div>
+
+        <p class="status">
+          Los números en gris ya están reservados y no pueden ser seleccionados.
+        </p>
+      </section>
+
+      <section class="panel admin-card">
+        <div class="admin-lock-box" id="adminLockedView">
+          <div class="admin-lock-title">
+            <div class="admin-lock-icon">🔒</div>
+            <div>
+              <strong>Área administrativa</strong>
+              <span>Acceso exclusivo para el administrador de la rifa.</span>
+            </div>
+          </div>
+
+          <button class="btn btn-secondary" id="btnAdminLogin">
+            🔐 Acceso administrador
+          </button>
+        </div>
+
+        <div class="admin-tools" id="adminTools">
+          <div class="admin-session">
+            <span>✓ Sesión de administrador activa</span>
+            <button class="btn-lock-admin" id="btnAdminLogout">Bloquear</button>
+          </div>
+
+          <p>
+            Desde aquí puedes exportar la información de las reservas
+            o limpiar los datos guardados en esta versión local.
+          </p>
+
+          <button class="btn btn-secondary" id="btnExportar">
+            Exportar reservas a Excel/CSV
+          </button>
+
+          <button class="btn btn-danger" id="btnBorrar">
+            Borrar todas las reservas locales
+          </button>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+
+  <p class="footer-note">
+    Rifa Solidaria • Sede Santa Cecilia • I.E. Efraín Varela Vaca
+  </p>
+
+</div>
+
+
+<!-- MODAL RESERVA -->
+<div class="modal" id="modalReserva">
+  <div class="modal-card">
+
+    <div class="modal-head">
+      <button class="close-btn" id="btnCerrarModal" aria-label="Cerrar">✕</button>
+      <h2>Confirma tu reserva</h2>
+      <p>
+        Completa tus datos. Al confirmar, los números quedarán marcados como reservados.
+      </p>
+    </div>
+
+    <div class="modal-body">
+
+      <div id="reservationForm">
+
+        <div class="numbers-modal">
+          <div class="number-chip" id="modalNum1">00</div>
+          <div class="number-chip" id="modalNum2">01</div>
+        </div>
+
+        <div class="form-group">
+          <label for="nombreCliente">Nombre completo *</label>
+          <input
+            class="form-control"
+            id="nombreCliente"
+            type="text"
+            placeholder="Ej: María González"
+            maxlength="80"
+            autocomplete="name"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="telefonoCliente">Celular / WhatsApp</label>
+          <input
+            class="form-control"
+            id="telefonoCliente"
+            type="tel"
+            placeholder="Ej: 300 123 4567"
+            maxlength="20"
+            autocomplete="tel"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="btnCancelarReserva">
+            Cancelar
+          </button>
+          <button class="btn btn-primary" id="btnConfirmarReserva">
+            Confirmar reserva
+          </button>
+        </div>
+
+      </div>
+
+      <div class="success-screen" id="successScreen">
+        <div class="success-icon">✓</div>
+        <h3>¡Reserva realizada!</h3>
+        <p id="successText"></p>
+
+        <button class="btn btn-primary" id="btnWhatsapp">
+          Enviar confirmación por WhatsApp
+        </button>
+
+        <button class="btn btn-secondary" id="btnCerrarSuccess">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+<!-- MODAL ACCESO ADMINISTRADOR -->
+<div class="modal" id="modalAdmin">
+  <div class="modal-card">
+    <div class="modal-head">
+      <button class="close-btn" id="btnCerrarAdminModal" aria-label="Cerrar">✕</button>
+      <h2>🔐 Acceso administrador</h2>
+      <p>
+        Ingresa la contraseña para ver las herramientas administrativas.
+      </p>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="adminPassword">Contraseña</label>
+
+        <div class="password-wrap">
+          <input
+            class="form-control"
+            id="adminPassword"
+            type="password"
+            placeholder="Escribe la contraseña"
+            autocomplete="current-password"
+          />
+
+          <button
+            type="button"
+            class="password-eye"
+            id="btnTogglePassword"
+            aria-label="Mostrar u ocultar contraseña"
+            title="Mostrar contraseña"
+          >
+            👁
+          </button>
+        </div>
+
+        <div class="admin-error" id="adminError">
+          Contraseña incorrecta. Inténtalo nuevamente.
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="btnCancelarAdmin">
+          Cancelar
+        </button>
+
+        <button class="btn btn-primary" id="btnIngresarAdmin">
+          Ingresar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+  const MI_WHATSAPP = "573206942593";
+
+  /*
+    IMPORTANTE:
+    Esta versión funciona completamente en HTML y guarda las reservas
+    en localStorage del navegador.
+
+    Cuando se despliegue para múltiples clientes, sustituiremos
+    guardarReservas() / cargarReservas() por llamadas a una API o Google Sheets,
+    para que todos los usuarios compartan el mismo estado en tiempo real.
+  */
+
+  let seleccionados = [];
+  let reservas = cargarReservas();
+  let ultimaReserva = null;
+
+  const tablero = document.getElementById("tablero");
+  const btnReservar = document.getElementById("btnReservar");
+  const btnLimpiar = document.getElementById("btnLimpiar");
+
+  const sel1 = document.getElementById("sel1");
+  const sel2 = document.getElementById("sel2");
+  const selectionPill = document.getElementById("selectionPill");
+
+  const reservedCounter = document.getElementById("reservedCounter");
+  const progressBar = document.getElementById("progressBar");
+
+  const modalReserva = document.getElementById("modalReserva");
+  const btnCerrarModal = document.getElementById("btnCerrarModal");
+  const btnCancelarReserva = document.getElementById("btnCancelarReserva");
+  const btnConfirmarReserva = document.getElementById("btnConfirmarReserva");
+  const btnCerrarSuccess = document.getElementById("btnCerrarSuccess");
+  const btnWhatsapp = document.getElementById("btnWhatsapp");
+
+  const reservationForm = document.getElementById("reservationForm");
+  const successScreen = document.getElementById("successScreen");
+
+  const nombreCliente = document.getElementById("nombreCliente");
+  const telefonoCliente = document.getElementById("telefonoCliente");
+  const modalNum1 = document.getElementById("modalNum1");
+  const modalNum2 = document.getElementById("modalNum2");
+
+  const adminLockedView = document.getElementById("adminLockedView");
+  const adminTools = document.getElementById("adminTools");
+  const btnAdminLogin = document.getElementById("btnAdminLogin");
+  const btnAdminLogout = document.getElementById("btnAdminLogout");
+
+  const modalAdmin = document.getElementById("modalAdmin");
+  const adminPassword = document.getElementById("adminPassword");
+  const adminError = document.getElementById("adminError");
+  const btnCerrarAdminModal = document.getElementById("btnCerrarAdminModal");
+  const btnCancelarAdmin = document.getElementById("btnCancelarAdmin");
+  const btnIngresarAdmin = document.getElementById("btnIngresarAdmin");
+  const btnTogglePassword = document.getElementById("btnTogglePassword");
+
+  const btnExportar = document.getElementById("btnExportar");
+  const btnBorrar = document.getElementById("btnBorrar");
+  const toast = document.getElementById("toast");
+
+  // SHA-256 de la contraseña del administrador.
+  // No se guarda la contraseña en texto plano dentro del HTML.
+  const ADMIN_PASSWORD_HASH =
+    "8a485c205754847f96fa097d96fc953c33ef97e394b7b346ff2cb77ad54bc14f";
+
+
+  async function sha256(texto) {
+    const datos = new TextEncoder().encode(texto);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", datos);
+
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(byte => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+
+  function abrirAdminLogin() {
+    adminPassword.value = "";
+    adminError.classList.remove("show");
+    adminPassword.type = "password";
+    btnTogglePassword.textContent = "👁";
+
+    modalAdmin.classList.add("show");
+    document.body.classList.add("modal-open");
+
+    setTimeout(() => adminPassword.focus(), 120);
+  }
+
+
+  function cerrarAdminLogin() {
+    modalAdmin.classList.remove("show");
+    adminError.classList.remove("show");
+
+    if (!modalReserva.classList.contains("show")) {
+      document.body.classList.remove("modal-open");
+    }
+  }
+
+
+  function mostrarAdmin() {
+    sessionStorage.setItem("rifa_admin_autorizado", "1");
+    adminLockedView.style.display = "none";
+    adminTools.classList.add("show");
+    cerrarAdminLogin();
+    mostrarToast("Acceso de administrador habilitado.");
+  }
+
+
+  function bloquearAdmin() {
+    sessionStorage.removeItem("rifa_admin_autorizado");
+    adminTools.classList.remove("show");
+    adminLockedView.style.display = "grid";
+    mostrarToast("Área administrativa bloqueada.");
+  }
+
+
+  async function validarAdmin() {
+    const password = adminPassword.value;
+
+    if (!password) {
+      adminError.textContent = "Escribe la contraseña.";
+      adminError.classList.add("show");
+      adminPassword.focus();
+      return;
+    }
+
+    btnIngresarAdmin.disabled = true;
+    btnIngresarAdmin.textContent = "Validando...";
+
+    try {
+      const hash = await sha256(password);
+
+      if (hash === ADMIN_PASSWORD_HASH) {
+        mostrarAdmin();
+      } else {
+        adminError.textContent = "Contraseña incorrecta. Inténtalo nuevamente.";
+        adminError.classList.add("show");
+        adminPassword.select();
+      }
+    } catch (error) {
+      adminError.textContent =
+        "No fue posible validar la contraseña en este navegador.";
+      adminError.classList.add("show");
+    } finally {
+      btnIngresarAdmin.disabled = false;
+      btnIngresarAdmin.textContent = "Ingresar";
+    }
+  }
+
+
+  function restaurarSesionAdmin() {
+    if (sessionStorage.getItem("rifa_admin_autorizado") === "1") {
+      adminLockedView.style.display = "none";
+      adminTools.classList.add("show");
+    } else {
+      adminLockedView.style.display = "grid";
+      adminTools.classList.remove("show");
+    }
+  }
+
+
+  function cargarReservas() {
+    try {
+      const data = JSON.parse(localStorage.getItem("rifa_reservas_v2"));
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+
+  function guardarReservas() {
+    localStorage.setItem("rifa_reservas_v2", JSON.stringify(reservas));
+  }
+
+
+  function numeroReservado(numero) {
+    return reservas.some(r => Array.isArray(r.numeros) && r.numeros.includes(numero));
+  }
+
+
+  function renderTablero() {
+    tablero.innerHTML = "";
+
+    for (let i = 0; i < 100; i++) {
+      const numero = String(i).padStart(2, "0");
+      const btn = document.createElement("button");
+
+      btn.type = "button";
+      btn.className = "num-btn";
+      btn.textContent = numero;
+      btn.setAttribute("aria-label", "Número " + numero);
+
+      if (numeroReservado(numero)) {
+        btn.classList.add("ocupado");
+        btn.disabled = true;
+        btn.title = "Número reservado";
+      }
+
+      if (seleccionados.includes(numero)) {
+        btn.classList.add("seleccionado");
+      }
+
+      btn.addEventListener("click", () => tocarNumero(numero));
+
+      tablero.appendChild(btn);
+    }
+
+    actualizarResumen();
+    actualizarEstadisticas();
+  }
+
+
+  function tocarNumero(numero) {
+    if (numeroReservado(numero)) {
+      mostrarToast("Este número ya está reservado.");
+      return;
+    }
+
+    if (seleccionados.includes(numero)) {
+      seleccionados = seleccionados.filter(n => n !== numero);
+    } else {
+      if (seleccionados.length >= 2) {
+        mostrarToast("Solo puedes seleccionar 2 números.");
+        return;
+      }
+
+      seleccionados.push(numero);
+    }
+
+    renderTablero();
+
+    // Según lo solicitado: al seleccionar los 2 números,
+    // aparece automáticamente la ventana emergente.
+    if (seleccionados.length === 2) {
+      setTimeout(abrirModalReserva, 180);
+    }
+  }
+
+
+  function actualizarResumen() {
+    const primero = seleccionados[0] || "--";
+    const segundo = seleccionados[1] || "--";
+
+    sel1.textContent = primero;
+    sel2.textContent = segundo;
+
+    sel1.classList.toggle("empty", !seleccionados[0]);
+    sel2.classList.toggle("empty", !seleccionados[1]);
+
+    selectionPill.textContent = `${seleccionados.length} de 2 seleccionados`;
+
+    if (seleccionados.length === 2) {
+      btnReservar.disabled = false;
+      btnReservar.textContent = `Reservar ${primero} y ${segundo}`;
+    } else {
+      btnReservar.disabled = true;
+      btnReservar.textContent =
+        seleccionados.length === 0
+          ? "Selecciona 2 números"
+          : "Selecciona 1 número más";
+    }
+  }
+
+
+  function actualizarEstadisticas() {
+    const numerosReservados = new Set();
+
+    reservas.forEach(r => {
+      (r.numeros || []).forEach(n => numerosReservados.add(n));
+    });
+
+    const total = numerosReservados.size;
+    reservedCounter.textContent = `${total} / 100`;
+    progressBar.style.width = `${total}%`;
+  }
+
+
+  function abrirModalReserva() {
+    if (seleccionados.length !== 2) return;
+
+    // Verificación final por si otro proceso local cambió los datos.
+    reservas = cargarReservas();
+
+    const yaOcupados = seleccionados.filter(numeroReservado);
+
+    if (yaOcupados.length) {
+      seleccionados = seleccionados.filter(n => !yaOcupados.includes(n));
+      renderTablero();
+      mostrarToast("Uno de los números ya fue reservado. Elige otro.");
+      return;
+    }
+
+    modalNum1.textContent = seleccionados[0];
+    modalNum2.textContent = seleccionados[1];
+
+    reservationForm.style.display = "block";
+    successScreen.style.display = "none";
+
+    nombreCliente.value = "";
+    telefonoCliente.value = "";
+
+    modalReserva.classList.add("show");
+    document.body.classList.add("modal-open");
+
+    setTimeout(() => nombreCliente.focus(), 120);
+  }
+
+
+  function cerrarModal() {
+    modalReserva.classList.remove("show");
+    document.body.classList.remove("modal-open");
+  }
+
+
+  function confirmarReserva() {
+    const nombre = nombreCliente.value.trim();
+    const telefono = telefonoCliente.value.trim();
+
+    if (!nombre) {
+      mostrarToast("Escribe el nombre de la persona.");
+      nombreCliente.focus();
+      return;
+    }
+
+    if (seleccionados.length !== 2) {
+      mostrarToast("Debes seleccionar 2 números.");
+      cerrarModal();
+      return;
+    }
+
+    // Recarga antes de guardar para evitar duplicados dentro de la misma máquina.
+    reservas = cargarReservas();
+
+    const ocupadosAhora = seleccionados.filter(numeroReservado);
+
+    if (ocupadosAhora.length) {
+      mostrarToast(
+        `El número ${ocupadosAhora.join(", ")} acaba de quedar reservado.`
+      );
+
+      cerrarModal();
+      seleccionados = [];
+      renderTablero();
+      return;
+    }
+
+    const reserva = {
+      id: "R-" + Date.now(),
+      nombre,
+      telefono,
+      numeros: [...seleccionados],
+      estado: "reservado",
+      fecha: new Date().toISOString()
+    };
+
+    reservas.push(reserva);
+    guardarReservas();
+
+    ultimaReserva = reserva;
+    seleccionados = [];
+
+    renderTablero();
+
+    reservationForm.style.display = "none";
+    successScreen.style.display = "block";
+
+    document.getElementById("successText").textContent =
+      `${reserva.nombre}, tus números ${reserva.numeros[0]} y ${reserva.numeros[1]} quedaron reservados correctamente.`;
+  }
+
+
+  function enviarWhatsApp() {
+    if (!ultimaReserva) return;
+
+    const mensaje =
+`Hola Luis. Acabo de reservar una oportunidad de la rifa solidaria.
+
+Nombre: ${ultimaReserva.nombre}
+Números: ${ultimaReserva.numeros[0]} y ${ultimaReserva.numeros[1]}
+${ultimaReserva.telefono ? "Celular: " + ultimaReserva.telefono : ""}
+
+Quedo atento(a) para confirmar el pago de $10.000.`;
+
+    const url =
+      `https://wa.me/${MI_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+
+    window.open(url, "_blank");
+  }
+
+
+  function limpiarSeleccion() {
+    seleccionados = [];
+    renderTablero();
+  }
+
+
+  function mostrarToast(mensaje) {
+    toast.textContent = mensaje;
+    toast.classList.add("show");
+
+    clearTimeout(window.__toastTimer);
+
+    window.__toastTimer = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 2600);
+  }
+
+
+  function exportarCSV() {
+    if (!reservas.length) {
+      mostrarToast("Todavía no hay reservas para exportar.");
+      return;
+    }
+
+    const encabezado = [
+      "ID",
+      "Nombre",
+      "Telefono",
+      "Numero 1",
+      "Numero 2",
+      "Estado",
+      "Fecha"
+    ];
+
+    const filas = reservas.map(r => [
+      r.id,
+      r.nombre,
+      r.telefono || "",
+      r.numeros?.[0] || "",
+      r.numeros?.[1] || "",
+      r.estado || "reservado",
+      r.fecha || ""
+    ]);
+
+    const escapar = valor =>
+      `"${String(valor ?? "").replace(/"/g, '""')}"`;
+
+    const csv =
+      "\uFEFF" +
+      [encabezado, ...filas]
+        .map(fila => fila.map(escapar).join(";"))
+        .join("\n");
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "reservas_rifa.csv";
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+
+    mostrarToast("Reservas exportadas correctamente.");
+  }
+
+
+  function borrarReservas() {
+    const confirmar = confirm(
+      "¿Seguro que deseas borrar TODAS las reservas guardadas en este navegador?"
+    );
+
+    if (!confirmar) return;
+
+    reservas = [];
+    seleccionados = [];
+    ultimaReserva = null;
+
+    guardarReservas();
+    renderTablero();
+
+    mostrarToast("Reservas locales eliminadas.");
+  }
+
+
+  btnReservar.addEventListener("click", abrirModalReserva);
+  btnLimpiar.addEventListener("click", limpiarSeleccion);
+
+  btnCerrarModal.addEventListener("click", cerrarModal);
+  btnCancelarReserva.addEventListener("click", cerrarModal);
+  btnConfirmarReserva.addEventListener("click", confirmarReserva);
+
+  btnCerrarSuccess.addEventListener("click", cerrarModal);
+  btnWhatsapp.addEventListener("click", enviarWhatsApp);
+
+  modalReserva.addEventListener("click", e => {
+    if (e.target === modalReserva) cerrarModal();
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      if (modalAdmin.classList.contains("show")) {
+        cerrarAdminLogin();
+      } else if (modalReserva.classList.contains("show")) {
+        cerrarModal();
+      }
+    }
+  });
+
+  btnAdminLogin.addEventListener("click", abrirAdminLogin);
+  btnAdminLogout.addEventListener("click", bloquearAdmin);
+
+  btnCerrarAdminModal.addEventListener("click", cerrarAdminLogin);
+  btnCancelarAdmin.addEventListener("click", cerrarAdminLogin);
+  btnIngresarAdmin.addEventListener("click", validarAdmin);
+
+  btnTogglePassword.addEventListener("click", () => {
+    const visible = adminPassword.type === "text";
+    adminPassword.type = visible ? "password" : "text";
+    btnTogglePassword.textContent = visible ? "👁" : "🙈";
+    adminPassword.focus();
+  });
+
+  adminPassword.addEventListener("input", () => {
+    adminError.classList.remove("show");
+  });
+
+  adminPassword.addEventListener("keydown", e => {
+    if (e.key === "Enter") validarAdmin();
+  });
+
+  modalAdmin.addEventListener("click", e => {
+    if (e.target === modalAdmin) cerrarAdminLogin();
+  });
+
+  btnExportar.addEventListener("click", exportarCSV);
+  btnBorrar.addEventListener("click", borrarReservas);
+
+  // Sincroniza cambios entre pestañas del mismo navegador.
+  window.addEventListener("storage", e => {
+    if (e.key === "rifa_reservas_v2") {
+      reservas = cargarReservas();
+      seleccionados = seleccionados.filter(n => !numeroReservado(n));
+      renderTablero();
+    }
+  });
+
+
+  restaurarSesionAdmin();
+  renderTablero();
+</script>
+
+</body>
+</html>
